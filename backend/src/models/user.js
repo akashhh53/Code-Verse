@@ -35,7 +35,6 @@ const userSchema = new Schema({
         type:[{
             type:Schema.Types.ObjectId,
             ref:'problem',
-            unique:true
         }],
     },
     password:{
