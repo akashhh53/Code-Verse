@@ -6,6 +6,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, NavLink } from 'react-router';
 import { ArrowRight, Code2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { loginUser } from "../authSlice";
+import { ThemeToggle } from '../components/CodeVerseUI';
+import { topicCount } from '../utils/problemMeta';
 
 const loginSchema = z.object({
   emailId: z.string().email("Invalid Email"),
@@ -34,11 +36,14 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 px-4 py-8">
-      <main className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm lg:grid-cols-[0.95fr_1.05fr]">
+    <div className="cv-page px-4 py-8">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
+      <main className="cv-panel mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden lg:grid-cols-[0.95fr_1.05fr]">
         <section className="hidden bg-base-300/40 p-8 lg:flex lg:flex-col lg:justify-between">
           <NavLink to="/login" className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-content">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-content">
               <Code2 className="h-6 w-6" />
             </span>
             <div>
@@ -48,7 +53,7 @@ function Login() {
           </NavLink>
 
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+            <div className="cv-chip">
               <ShieldCheck className="h-4 w-4" />
               Secure learner workspace
             </div>
@@ -62,7 +67,7 @@ function Login() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <AuthMetric value="3" label="Languages" />
-              <AuthMetric value="4" label="Topics" />
+              <AuthMetric value={topicCount} label="DSA topics" />
               <AuthMetric value="AI" label="Hints" />
             </div>
           </div>
@@ -76,7 +81,7 @@ function Login() {
           <div className="w-full max-w-md">
             <div className="mb-8 lg:hidden">
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-content">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-content">
                   <Code2 className="h-6 w-6" />
                 </span>
                 <div>
@@ -94,7 +99,7 @@ function Login() {
             </div>
 
             {error && (
-              <div className="alert alert-error mb-5 rounded-lg">
+              <div className="alert alert-error mb-5 rounded-2xl">
                 <span>{getAuthErrorMessage(error)}</span>
               </div>
             )}
@@ -104,7 +109,7 @@ function Login() {
                 <label className="label">
                   <span className="label-text font-medium">Email</span>
                 </label>
-                <label className={`input input-bordered flex items-center gap-2 ${errors.emailId ? 'input-error' : ''}`}>
+                <label className={`input input-bordered flex items-center gap-2 rounded-2xl ${errors.emailId ? 'input-error' : ''}`}>
                   <Mail className="h-4 w-4 text-base-content/45" />
                   <input
                     type="email"
@@ -122,7 +127,7 @@ function Login() {
                 <label className="label">
                   <span className="label-text font-medium">Password</span>
                 </label>
-                <label className={`input input-bordered flex items-center gap-2 ${errors.password ? 'input-error' : ''}`}>
+                <label className={`input input-bordered flex items-center gap-2 rounded-2xl ${errors.password ? 'input-error' : ''}`}>
                   <LockKeyhole className="h-4 w-4 text-base-content/45" />
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -132,7 +137,7 @@ function Login() {
                   />
                   <button
                     type="button"
-                    className="btn btn-ghost btn-xs btn-square"
+                    className="btn btn-ghost btn-xs btn-square rounded-xl"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -144,7 +149,7 @@ function Login() {
                 )}
               </div>
 
-              <button type="submit" className="btn btn-primary w-full gap-2" disabled={loading}>
+              <button type="submit" className="btn btn-primary w-full rounded-full gap-2" disabled={loading}>
                 {loading ? (
                   <>
                     <span className="loading loading-spinner loading-sm"></span>
@@ -174,7 +179,7 @@ function Login() {
 
 function AuthMetric({ value, label }) {
   return (
-    <div className="rounded-lg border border-base-300 bg-base-100 p-4">
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs uppercase tracking-wide text-base-content/55">{label}</p>
     </div>

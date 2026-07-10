@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node src/index.js",
-  "dev": "nodemon src/index.js"
-},
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed:topics": "node src/scripts/seedProblemTopics.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

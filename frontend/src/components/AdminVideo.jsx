@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router';
 import { AlertTriangle, ArrowLeft, PlaySquare, RefreshCw, Search, Trash2, Upload, Video } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
+import { BackBar, EmptyState, HeroPanel, PageShell, StatCard } from './CodeVerseUI';
+import { formatLabel, getDifficultyDot, getDifficultyTone, getTagLabel } from '../utils/problemMeta';
 
 const AdminVideo = () => {
   const [problems, setProblems] = useState([]);
@@ -62,51 +64,37 @@ const AdminVideo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <NavLink to="/admin" className="btn btn-ghost gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Admin
-          </NavLink>
-          <button type="button" className="btn btn-outline btn-sm gap-2" onClick={fetchProblems} disabled={loading}>
+    <div className="cv-page">
+      <PageShell>
+        <BackBar
+          to="/admin"
+          label="Admin"
+          right={(
+            <button type="button" className="btn btn-outline btn-sm rounded-full gap-2" onClick={fetchProblems} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
-          </button>
-        </div>
+            </button>
+          )}
+        />
 
-        <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-info/10 px-3 py-1 text-sm font-medium text-info">
-                <PlaySquare className="h-4 w-4" />
-                Learning content
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Video Library</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
-                Upload editorials and manage videos attached to your coding problems.
-              </p>
-            </div>
-
-            <div className="stats stats-vertical border border-base-300 bg-base-200/50 shadow-none sm:stats-horizontal">
-              <div className="stat">
-                <div className="stat-title">Problems</div>
-                <div className="stat-value text-2xl">{problems.length}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Showing</div>
-                <div className="stat-value text-2xl">{filteredProblems.length}</div>
-              </div>
-            </div>
+        <HeroPanel
+          eyebrow="Learning content"
+          title="Video Library"
+          subtitle="Upload editorials and manage videos attached to your coding problems."
+          icon={PlaySquare}
+        >
+          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-80">
+            <StatCard label="Problems" value={problems.length} />
+            <StatCard label="Showing" value={filteredProblems.length} />
           </div>
-        </section>
+        </HeroPanel>
 
-        <section className="mt-6 rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm">
-          <label className="input input-bordered flex items-center gap-2">
+        <section className="cv-panel mt-6 p-4">
+          <label className="cv-control flex items-center gap-3 px-4">
             <Search className="h-4 w-4 text-base-content/45" />
             <input
               type="search"
-              className="grow"
+              className="w-full bg-transparent outline-none placeholder:text-base-content/45"
               placeholder="Search problems before uploading a video"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -115,34 +103,30 @@ const AdminVideo = () => {
         </section>
 
         {notice && (
-          <div className="alert alert-success mt-6 rounded-lg">
+          <div className="alert alert-success mt-6 rounded-2xl">
             <span>{notice}</span>
           </div>
         )}
 
         {error && (
-          <div className="alert alert-error mt-6 rounded-lg">
+          <div className="alert alert-error mt-6 rounded-2xl">
             <AlertTriangle className="h-5 w-5" />
             <span>{error}</span>
           </div>
         )}
 
-        <section className="mt-6 overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
+        <section className="cv-panel mt-6 overflow-hidden">
           {loading ? (
             <div className="space-y-3 p-4">
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="skeleton h-16 w-full rounded-lg" />
+                <div key={index} className="skeleton h-16 w-full rounded-2xl" />
               ))}
             </div>
           ) : filteredProblems.length === 0 ? (
-            <div className="p-10 text-center">
-              <Video className="mx-auto h-10 w-10 text-base-content/35" />
-              <h2 className="mt-4 text-lg font-semibold">No problems found</h2>
-              <p className="mt-2 text-sm text-base-content/60">Try a different search or refresh the list.</p>
-            </div>
+            <EmptyState icon={Video} title="No problems found" text="Try a different search or refresh the list." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="table">
+              <table className="cv-table min-w-[820px]">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -157,26 +141,27 @@ const AdminVideo = () => {
                     <tr key={problem._id} className="hover">
                       <td className="text-base-content/50">{index + 1}</td>
                       <td>
-                        <div className="font-semibold">{problem.title}</div>
+                        <div className="font-bold">{problem.title}</div>
                         <div className="text-xs text-base-content/50">{problem._id}</div>
                       </td>
                       <td>
-                        <span className={`badge ${getDifficultyBadgeColor(problem.difficulty)}`}>
+                        <span className={`inline-flex items-center gap-2 font-semibold ${getDifficultyTone(problem.difficulty)}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${getDifficultyDot(problem.difficulty)}`}></span>
                           {formatLabel(problem.difficulty)}
                         </span>
                       </td>
                       <td>
-                        <span className="badge badge-outline">{getTagLabel(problem.tags)}</span>
+                        <span className="rounded-full border border-base-300 px-3 py-1 text-xs text-secondary">{getTagLabel(problem.tags)}</span>
                       </td>
                       <td>
                         <div className="flex justify-end gap-2">
-                          <NavLink to={`/admin/upload/${problem._id}`} className="btn btn-primary btn-sm gap-2">
+                          <NavLink to={`/admin/upload/${problem._id}`} className="btn btn-primary btn-sm rounded-full gap-2">
                             <Upload className="h-4 w-4" />
                             Upload
                           </NavLink>
                           <button
                             onClick={() => handleDelete(problem._id)}
-                            className="btn btn-error btn-outline btn-sm gap-2"
+                            className="btn btn-error btn-outline btn-sm rounded-full gap-2"
                             disabled={deletingId === problem._id}
                           >
                             {deletingId === problem._id ? (
@@ -195,35 +180,9 @@ const AdminVideo = () => {
             </div>
           )}
         </section>
-      </main>
+      </PageShell>
     </div>
   );
-};
-
-const formatLabel = (value = '') => value.charAt(0).toUpperCase() + value.slice(1);
-
-const getTagLabel = (tag) => {
-  const labels = {
-    array: 'Array',
-    linkedList: 'Linked List',
-    graph: 'Graph',
-    dp: 'Dynamic Programming',
-  };
-
-  return labels[tag] || tag;
-};
-
-const getDifficultyBadgeColor = (difficulty = '') => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'badge-success';
-    case 'medium':
-      return 'badge-warning';
-    case 'hard':
-      return 'badge-error';
-    default:
-      return 'badge-neutral';
-  }
 };
 
 export default AdminVideo;

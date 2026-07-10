@@ -1,7 +1,48 @@
 const Problem = require("../models/problem");
 const Submission = require("../models/submission");
-const User = require("../models/user");
 const {getLanguageById,submitBatch,submitToken} = require("../utils/problemUtility");
+
+const MAX_CUSTOM_TEST_CASES = 5;
+
+const normalizeCustomTestCases = (customTestCases = []) => {
+  if (!Array.isArray(customTestCases)) return [];
+
+  return customTestCases
+    .slice(0, MAX_CUSTOM_TEST_CASES)
+    .map((testCase) => ({
+      input: String(testCase?.input ?? ''),
+      output: String(testCase?.output ?? ''),
+    }))
+    .filter((testCase) => testCase.input.trim() || testCase.output.trim());
+};
+
+const buildJudgeSubmission = (code, languageId, testCase) => {
+  const submission = {
+    source_code: code,
+    language_id: languageId,
+    stdin: testCase.input,
+  };
+
+  if (testCase.output?.trim()) {
+    submission.expected_output = testCase.output;
+  }
+
+  return submission;
+};
+
+const toNumber = (value) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const attachTestCaseMeta = (judgeResults, testCases) => {
+  return judgeResults.map((result, index) => ({
+    ...result,
+    stdin: testCases[index]?.input ?? result.stdin,
+    expected_output: testCases[index]?.output ?? result.expected_output,
+    hasExpectedOutput: Boolean(testCases[index]?.output?.trim()),
+  }));
+};
 
 const submitCode = async (req,res)=>{
    
@@ -24,9 +65,11 @@ const submitCode = async (req,res)=>{
       
     //    Fetch the problem from database
        const problem =  await Problem.findById(problemId);
+       if(!problem)
+        return res.status(404).send("Problem not found");
     //    testcases(Hidden)
     
-    //   Kya apne submission store kar du pehle....
+    // Store the submission before sending it to the judge.
     const submittedResult = await Submission.create({
           userId,
           problemId,
@@ -36,7 +79,7 @@ const submitCode = async (req,res)=>{
           testCasesTotal:problem.hiddenTestCases.length
      })
 
-    //    Judge0 code ko submit karna hai
+    // Submit the code to Judge0.
     
     const languageId = getLanguageById(language);
    
@@ -55,7 +98,7 @@ const submitCode = async (req,res)=>{
     const testResult = await submitToken(resultToken);
     
 
-    // submittedResult ko update karo
+    // Update the stored submission result.
     let testCasesPassed = 0;
     let runtime = 0;
     let memory = 0;
@@ -66,8 +109,8 @@ const submitCode = async (req,res)=>{
     for(const test of testResult){
         if(test.status_id==3){
            testCasesPassed++;
-           runtime = runtime+parseFloat(test.time)
-           memory = Math.max(memory,test.memory);
+           runtime = runtime+toNumber(test.time)
+           memory = Math.max(memory,toNumber(test.memory));
         }else{
           if(test.status_id==4){
             status = 'error'
@@ -90,16 +133,18 @@ const submitCode = async (req,res)=>{
 
     await submittedResult.save();
     
-    // ProblemId ko insert karenge userSchema ke problemSolved mein if it is not persent there.
-    
-    // req.result == user Information
+    const accepted = (status == 'accepted')
 
-    if(!req.result.problemSolved.includes(problemId)){
+    // Mark solved only after an accepted submission.
+    const alreadySolved = req.result.problemSolved.some(
+      (solvedProblemId) => solvedProblemId.toString() === problemId
+    );
+
+    if(accepted && !alreadySolved){
       req.result.problemSolved.push(problemId);
       await req.result.save();
     }
     
-    const accepted = (status == 'accepted')
     res.status(201).json({
       accepted,
       totalTestCases: submittedResult.testCasesTotal,
@@ -122,27 +167,27 @@ const runCode = async(req,res)=>{
       const userId = req.result._id;
       const problemId = req.params.id;
 
-      let {code,language} = req.body;
+      let {code,language, customTestCases = []} = req.body;
 
      if(!userId||!code||!problemId||!language)
        return res.status(400).send("Some field missing");
 
    //    Fetch the problem from database
       const problem =  await Problem.findById(problemId);
+      if(!problem)
+        return res.status(404).send("Problem not found");
    //    testcases(Hidden)
       if(language==='cpp')
         language='c++'
 
-   //    Judge0 code ko submit karna hai
+   //    Submit the code to Judge0.
 
    const languageId = getLanguageById(language);
+   const normalizedCustomTestCases = normalizeCustomTestCases(customTestCases);
+   const isCustomRun = normalizedCustomTestCases.length > 0;
+   const runTestCases = isCustomRun ? normalizedCustomTestCases : problem.visibleTestCases;
 
-   const submissions = problem.visibleTestCases.map((testcase)=>({
-       source_code:code,
-       language_id: languageId,
-       stdin: testcase.input,
-       expected_output: testcase.output
-   }));
+   const submissions = runTestCases.map((testcase) => buildJudgeSubmission(code, languageId, testcase));
 
 
    const submitResult = await submitBatch(submissions);
@@ -160,8 +205,8 @@ const runCode = async(req,res)=>{
     for(const test of testResult){
         if(test.status_id==3){
            testCasesPassed++;
-           runtime = runtime+parseFloat(test.time)
-           memory = Math.max(memory,test.memory);
+           runtime = runtime+toNumber(test.time)
+           memory = Math.max(memory,toNumber(test.memory));
         }else{
           if(test.status_id==4){
             status = false
@@ -178,7 +223,8 @@ const runCode = async(req,res)=>{
   
    res.status(201).json({
     success:status,
-    testCases: testResult,
+    mode: isCustomRun ? 'custom' : 'examples',
+    testCases: attachTestCaseMeta(testResult, runTestCases),
     runtime,
     memory
    });

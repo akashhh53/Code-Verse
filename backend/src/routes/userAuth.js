@@ -22,6 +22,7 @@ authRouter.get('/check',userMiddleware,(req,res)=>{
 
     res.status(200).json({
         user:reply,
+        accessToken:req.authToken,
         message:"Valid User"
     });
 })
@@ -33,4 +34,3 @@ module.exports = authRouter;
 // login
 // logout
 // GetProfile
-

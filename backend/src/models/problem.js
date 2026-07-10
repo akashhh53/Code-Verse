@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { problemTags } = require('../constants/problemMeta');
 const {Schema} = mongoose;
 
 const problemSchema = new Schema({
@@ -17,7 +18,7 @@ const problemSchema = new Schema({
     },
     tags:{
         type:String,
-        enum:['array','linkedList','graph','dp'],
+        enum: problemTags,
         required:true
     },
     visibleTestCases:[
@@ -87,5 +88,4 @@ const problemSchema = new Schema({
 const Problem = mongoose.model('problem',problemSchema);
 
 module.exports = Problem;
-
 

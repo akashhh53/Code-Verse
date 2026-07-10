@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, NavLink } from 'react-router';
 import { ArrowRight, Code2, Eye, EyeOff, LockKeyhole, Mail, Sparkles, UserRound } from 'lucide-react';
 import { registerUser } from '../authSlice';
+import { ThemeToggle } from '../components/CodeVerseUI';
 
 const signupSchema = z.object({
   firstName: z.string().min(3, "Minimum character should be 3"),
@@ -36,12 +37,15 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 px-4 py-8">
-      <main className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="cv-page px-4 py-8">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
+      <main className="cv-panel mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden lg:grid-cols-[1.05fr_0.95fr]">
         <section className="flex items-center justify-center p-5 sm:p-8">
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-content">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-content">
                 <Code2 className="h-6 w-6" />
               </span>
               <div>
@@ -58,7 +62,7 @@ function Signup() {
             </div>
 
             {error && (
-              <div className="alert alert-error mb-5 rounded-lg">
+              <div className="alert alert-error mb-5 rounded-2xl">
                 <span>{getAuthErrorMessage(error)}</span>
               </div>
             )}
@@ -68,7 +72,7 @@ function Signup() {
                 <label className="label">
                   <span className="label-text font-medium">First name</span>
                 </label>
-                <label className={`input input-bordered flex items-center gap-2 ${errors.firstName ? 'input-error' : ''}`}>
+                <label className={`input input-bordered flex items-center gap-2 rounded-2xl ${errors.firstName ? 'input-error' : ''}`}>
                   <UserRound className="h-4 w-4 text-base-content/45" />
                   <input
                     type="text"
@@ -86,7 +90,7 @@ function Signup() {
                 <label className="label">
                   <span className="label-text font-medium">Email</span>
                 </label>
-                <label className={`input input-bordered flex items-center gap-2 ${errors.emailId ? 'input-error' : ''}`}>
+                <label className={`input input-bordered flex items-center gap-2 rounded-2xl ${errors.emailId ? 'input-error' : ''}`}>
                   <Mail className="h-4 w-4 text-base-content/45" />
                   <input
                     type="email"
@@ -104,7 +108,7 @@ function Signup() {
                 <label className="label">
                   <span className="label-text font-medium">Password</span>
                 </label>
-                <label className={`input input-bordered flex items-center gap-2 ${errors.password ? 'input-error' : ''}`}>
+                <label className={`input input-bordered flex items-center gap-2 rounded-2xl ${errors.password ? 'input-error' : ''}`}>
                   <LockKeyhole className="h-4 w-4 text-base-content/45" />
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -114,7 +118,7 @@ function Signup() {
                   />
                   <button
                     type="button"
-                    className="btn btn-ghost btn-xs btn-square"
+                    className="btn btn-ghost btn-xs btn-square rounded-xl"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -126,7 +130,7 @@ function Signup() {
                 )}
               </div>
 
-              <button type="submit" className="btn btn-primary w-full gap-2" disabled={loading}>
+              <button type="submit" className="btn btn-primary w-full rounded-full gap-2" disabled={loading}>
                 {loading ? (
                   <>
                     <span className="loading loading-spinner loading-sm"></span>
@@ -151,7 +155,7 @@ function Signup() {
         </section>
 
         <section className="hidden bg-base-300/40 p-8 lg:flex lg:flex-col lg:justify-between">
-          <div className="inline-flex w-fit items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <div className="cv-chip w-fit">
             <Sparkles className="h-4 w-4" />
             Built for consistent growth
           </div>
@@ -178,7 +182,7 @@ function Signup() {
 
 function FeatureRow({ title, text }) {
   return (
-    <div className="rounded-lg border border-base-300 bg-base-100 p-4">
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
       <p className="font-semibold">{title}</p>
       <p className="mt-1 text-sm text-base-content/60">{text}</p>
     </div>

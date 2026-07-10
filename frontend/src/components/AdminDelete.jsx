@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink } from 'react-router';
 import { AlertTriangle, ArrowLeft, BookOpen, RefreshCw, Search, ShieldAlert, Trash2 } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
+import { BackBar, EmptyState, HeroPanel, PageShell, StatCard } from './CodeVerseUI';
+import { formatLabel, getDifficultyDot, getDifficultyTone, getTagLabel } from '../utils/problemMeta';
 
 const AdminDelete = () => {
   const [problems, setProblems] = useState([]);
@@ -63,51 +64,37 @@ const AdminDelete = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <NavLink to="/admin" className="btn btn-ghost gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Admin
-          </NavLink>
-          <button type="button" className="btn btn-outline btn-sm gap-2" onClick={fetchProblems} disabled={loading}>
+    <div className="cv-page">
+      <PageShell>
+        <BackBar
+          to="/admin"
+          label="Admin"
+          right={(
+            <button type="button" className="btn btn-outline btn-sm rounded-full gap-2" onClick={fetchProblems} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
-          </button>
-        </div>
+            </button>
+          )}
+        />
 
-        <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-error/10 px-3 py-1 text-sm font-medium text-error">
-                <ShieldAlert className="h-4 w-4" />
-                Careful action
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Delete Problems</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
-                Review your catalog before removing a problem from the platform.
-              </p>
-            </div>
-
-            <div className="stats stats-vertical border border-base-300 bg-base-200/50 shadow-none sm:stats-horizontal">
-              <div className="stat">
-                <div className="stat-title">Total</div>
-                <div className="stat-value text-2xl">{problems.length}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Showing</div>
-                <div className="stat-value text-2xl">{filteredProblems.length}</div>
-              </div>
-            </div>
+        <HeroPanel
+          eyebrow="Careful action"
+          title="Delete Problems"
+          subtitle="Review your catalog before removing a problem from the platform."
+          icon={ShieldAlert}
+        >
+          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-80">
+            <StatCard label="Total" value={problems.length} />
+            <StatCard label="Showing" value={filteredProblems.length} />
           </div>
-        </section>
+        </HeroPanel>
 
-        <section className="mt-6 rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm">
-          <label className="input input-bordered flex items-center gap-2">
+        <section className="cv-panel mt-6 p-4">
+          <label className="cv-control flex items-center gap-3 px-4">
             <Search className="h-4 w-4 text-base-content/45" />
             <input
               type="search"
-              className="grow"
+              className="w-full bg-transparent outline-none placeholder:text-base-content/45"
               placeholder="Search by title, difficulty, or topic"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -116,34 +103,30 @@ const AdminDelete = () => {
         </section>
 
         {notice && (
-          <div className="alert alert-success mt-6 rounded-lg">
+          <div className="alert alert-success mt-6 rounded-2xl">
             <span>{notice}</span>
           </div>
         )}
 
         {error && (
-          <div className="alert alert-error mt-6 rounded-lg">
+          <div className="alert alert-error mt-6 rounded-2xl">
             <AlertTriangle className="h-5 w-5" />
             <span>{error}</span>
           </div>
         )}
 
-        <section className="mt-6 overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
+        <section className="cv-panel mt-6 overflow-hidden">
           {loading ? (
             <div className="space-y-3 p-4">
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="skeleton h-16 w-full rounded-lg" />
+                <div key={index} className="skeleton h-16 w-full rounded-2xl" />
               ))}
             </div>
           ) : filteredProblems.length === 0 ? (
-            <div className="p-10 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-base-content/35" />
-              <h2 className="mt-4 text-lg font-semibold">No problems found</h2>
-              <p className="mt-2 text-sm text-base-content/60">Try a different search or refresh the list.</p>
-            </div>
+            <EmptyState icon={BookOpen} title="No problems found" text="Try a different search or refresh the list." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="table">
+              <table className="cv-table min-w-[760px]">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -158,21 +141,22 @@ const AdminDelete = () => {
                     <tr key={problem._id} className="hover">
                       <td className="text-base-content/50">{index + 1}</td>
                       <td>
-                        <div className="font-semibold">{problem.title}</div>
+                        <div className="font-bold">{problem.title}</div>
                         <div className="text-xs text-base-content/50">{problem._id}</div>
                       </td>
                       <td>
-                        <span className={`badge ${getDifficultyBadgeColor(problem.difficulty)}`}>
+                        <span className={`inline-flex items-center gap-2 font-semibold ${getDifficultyTone(problem.difficulty)}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${getDifficultyDot(problem.difficulty)}`}></span>
                           {formatLabel(problem.difficulty)}
                         </span>
                       </td>
                       <td>
-                        <span className="badge badge-outline">{getTagLabel(problem.tags)}</span>
+                        <span className="rounded-full border border-base-300 px-3 py-1 text-xs text-secondary">{getTagLabel(problem.tags)}</span>
                       </td>
                       <td className="text-right">
                         <button
                           onClick={() => handleDelete(problem._id)}
-                          className="btn btn-error btn-sm gap-2"
+                          className="btn btn-error btn-sm rounded-full gap-2"
                           disabled={deletingId === problem._id}
                         >
                           {deletingId === problem._id ? (
@@ -190,35 +174,9 @@ const AdminDelete = () => {
             </div>
           )}
         </section>
-      </main>
+      </PageShell>
     </div>
   );
-};
-
-const formatLabel = (value = '') => value.charAt(0).toUpperCase() + value.slice(1);
-
-const getTagLabel = (tag) => {
-  const labels = {
-    array: 'Array',
-    linkedList: 'Linked List',
-    graph: 'Graph',
-    dp: 'Dynamic Programming',
-  };
-
-  return labels[tag] || tag;
-};
-
-const getDifficultyBadgeColor = (difficulty = '') => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'badge-success';
-    case 'medium':
-      return 'badge-warning';
-    case 'hard':
-      return 'badge-error';
-    default:
-      return 'badge-neutral';
-  }
 };
 
 export default AdminDelete;

@@ -10,6 +10,9 @@ const submitRouter = require("./routes/submit")
 const aiRouter = require("./routes/aiChatting")
 const videoRouter = require("./routes/videoCreator");
 const cors = require('cors')
+const path = require('path');
+const fs = require('fs');
+const seedProblemTopics = require('./utils/seedProblemTopics');
 
 // console.log("Hello")
 
@@ -27,11 +30,35 @@ app.use('/submission',submitRouter);
 app.use('/ai',aiRouter);
 app.use("/video",videoRouter);
 
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+
+if (fs.existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+}
+
+app.use((req, res, next) => {
+    const isApiRoute = ['/user', '/problem', '/submission', '/ai', '/video'].some((route) => req.path.startsWith(route));
+
+    if (req.method === 'GET' && !isApiRoute) {
+        if (fs.existsSync(frontendIndexPath)) {
+            return res.sendFile(frontendIndexPath);
+        }
+
+        if (process.env.FRONTEND_URL) {
+            return res.redirect(`${process.env.FRONTEND_URL}${req.originalUrl}`);
+        }
+    }
+
+    next();
+});
+
 
 const InitalizeConnection = async ()=>{
     try{
 
-        await Promise.all([main(),redisClient.connect()]);
+        await main();
+        await Promise.all([redisClient.connect(), seedProblemTopics()]);
         console.log("DB Connected");
         
         app.listen(process.env.PORT, ()=>{
@@ -46,4 +73,3 @@ const InitalizeConnection = async ()=>{
 
 
 InitalizeConnection();
-

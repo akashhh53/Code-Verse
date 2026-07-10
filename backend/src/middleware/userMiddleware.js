@@ -1,16 +1,37 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const redisClient = require("../config/redis")
+const { getTokenCandidatesFromRequest } = require("../utils/authToken");
 
 const userMiddleware = async (req,res,next)=>{
 
     try{
         
-        const {token} = req.cookies;
-        if(!token)
-            throw new Error("Token is not persent");
+        const tokens = getTokenCandidatesFromRequest(req);
+        if(!tokens.length)
+            throw new Error("Token is not present");
 
-        const payload = jwt.verify(token,process.env.JWT_KEY);
+        let payload = null;
+        let token = null;
+
+        for (const candidateToken of tokens) {
+            try {
+                const decodedPayload = jwt.verify(candidateToken,process.env.JWT_KEY);
+                const isBlocked = await redisClient.exists(`token:${candidateToken}`);
+
+                if(!isBlocked){
+                    payload = decodedPayload;
+                    token = candidateToken;
+                    break;
+                }
+            }
+            catch(err){
+                // Try the next available auth source.
+            }
+        }
+
+        if(!payload || !token)
+            throw new Error("Invalid Token");
 
         const {_id} = payload;
 
@@ -24,14 +45,8 @@ const userMiddleware = async (req,res,next)=>{
             throw new Error("User Doesn't Exist");
         }
 
-        // Redis ke blockList mein persent toh nahi hai
-
-        const IsBlocked = await redisClient.exists(`token:${token}`);
-
-        if(IsBlocked)
-            throw new Error("Invalid Token");
-
         req.result = result;
+        req.authToken = token;
 
 
         next();

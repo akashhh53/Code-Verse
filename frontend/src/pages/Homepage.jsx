@@ -1,39 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  BookOpen,
-  CheckCircle2,
-  Code2,
-  Filter,
-  LogOut,
-  Search,
-  Shield,
-  Trophy,
-} from 'lucide-react';
+import { Check, ChevronDown, Circle, Search, SlidersHorizontal, Trophy, X } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
 import { logoutUser } from '../authSlice';
-
-const difficultyOptions = [
-  { value: 'all', label: 'All Difficulties' },
-  { value: 'easy', label: 'Easy' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'hard', label: 'Hard' },
-];
-
-const tagOptions = [
-  { value: 'all', label: 'All Tags' },
-  { value: 'array', label: 'Array' },
-  { value: 'linkedList', label: 'Linked List' },
-  { value: 'graph', label: 'Graph' },
-  { value: 'dp', label: 'Dynamic Programming' },
-];
-
-const statusOptions = [
-  { value: 'all', label: 'All Problems' },
-  { value: 'solved', label: 'Solved' },
-  { value: 'unsolved', label: 'Unsolved' },
-];
+import { AppHeader, EmptyState, PageShell } from '../components/CodeVerseUI';
+import {
+  difficultyOptions,
+  formatLabel,
+  getDifficultyDot,
+  getDifficultyTone,
+  selectDailyChallenge,
+  statusOptions,
+  tagOptions,
+} from '../utils/problemMeta';
 
 function Homepage() {
   const dispatch = useDispatch();
@@ -43,6 +23,7 @@ function Homepage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [topicFilterOptions, setTopicFilterOptions] = useState(tagOptions);
   const [filters, setFilters] = useState({
     difficulty: 'all',
     tag: 'all',
@@ -57,15 +38,26 @@ function Homepage() {
       setError('');
 
       try {
-        const [{ data: problemData }, { data: solvedData }] = await Promise.all([
+        const [{ data: problemData }, { data: solvedData }, { data: topicData }] = await Promise.all([
           axiosClient.get('/problem/getAllProblem'),
           user ? axiosClient.get('/problem/problemSolvedByUser') : Promise.resolve({ data: [] }),
+          axiosClient.get('/problem/topics').catch(() => ({ data: [] })),
         ]);
 
         if (!isMounted) return;
 
         setProblems(Array.isArray(problemData) ? problemData : []);
         setSolvedProblems(Array.isArray(solvedData) ? solvedData : []);
+
+        const backendTopicOptions = Array.isArray(topicData)
+          ? topicData.filter((topic) => topic.value && topic.label)
+          : [];
+
+        setTopicFilterOptions(
+          backendTopicOptions.length
+            ? [{ value: 'all', label: 'All topics' }, ...backendTopicOptions]
+            : tagOptions
+        );
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
 
@@ -90,22 +82,12 @@ function Homepage() {
     };
   }, [user]);
 
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    setSolvedProblems([]);
-  };
-
-  const solvedProblemIds = new Set(solvedProblems.map((problem) => problem._id));
+  const solvedProblemIds = useMemo(() => new Set(solvedProblems.map((problem) => problem._id)), [solvedProblems]);
   const totalProblems = problems.length;
   const solvedCount = problems.filter((problem) => solvedProblemIds.has(problem._id)).length;
-  const pendingCount = Math.max(totalProblems - solvedCount, 0);
   const completionRate = totalProblems ? Math.round((solvedCount / totalProblems) * 100) : 0;
-  const activeFilters = [
-    filters.status !== 'all',
-    filters.difficulty !== 'all',
-    filters.tag !== 'all',
-    Boolean(searchTerm.trim()),
-  ].filter(Boolean).length;
+  const progressByDifficulty = getProgressByDifficulty(problems, solvedProblemIds);
+  const dailyChallenge = selectDailyChallenge(problems, solvedProblemIds, user?._id || user?.emailId || user?.firstName);
 
   const filteredProblems = problems.filter((problem) => {
     const isSolved = solvedProblemIds.has(problem._id);
@@ -121,295 +103,334 @@ function Homepage() {
     return titleMatch && difficultyMatch && tagMatch && statusMatch;
   });
 
+  const activeFilters = [
+    searchTerm.trim() && { key: 'search', label: `Search: ${searchTerm.trim()}` },
+    filters.status !== 'all' && { key: 'status', label: `Status: ${getOptionLabel(statusOptions, filters.status)}` },
+    filters.difficulty !== 'all' && { key: 'difficulty', label: `Difficulty: ${getOptionLabel(difficultyOptions, filters.difficulty)}` },
+    filters.tag !== 'all' && { key: 'tag', label: `Topic: ${getOptionLabel(topicFilterOptions, filters.tag)}` },
+  ].filter(Boolean);
+  const hasActiveFilters = activeFilters.length > 0;
+
+  const updateFilter = (name, value) => {
+    setFilters((currentFilters) => ({ ...currentFilters, [name]: value }));
+  };
+
   const resetFilters = () => {
     setSearchTerm('');
-    setFilters({
-      difficulty: 'all',
-      tag: 'all',
-      status: 'all',
-    });
+    setFilters({ difficulty: 'all', tag: 'all', status: 'all' });
+  };
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    setSolvedProblems([]);
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <nav className="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <NavLink to="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-content">
-              <Code2 className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-lg font-bold leading-tight">CodeVerse</p>
-              <p className="text-xs text-base-content/60">Practice with purpose</p>
-            </div>
-          </NavLink>
+    <div className="cv-page">
+      <AppHeader user={user} onLogout={handleLogout} active="problems" />
 
-          <div className="flex items-center gap-3">
-            {user?.role === 'admin' && (
-              <NavLink to="/admin" className="btn btn-ghost btn-sm hidden gap-2 sm:inline-flex">
-                <Shield className="h-4 w-4" />
-                Admin
+      <PageShell>
+        <section className="grid gap-6 py-8 lg:grid-cols-[1fr_22rem] lg:items-end">
+          <div>
+            {dailyChallenge.problem ? (
+              <NavLink to={`/problem/${dailyChallenge.problem._id}`} className="cv-chip mb-5 hover:border-primary hover:text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary"></span>
+                {dailyChallenge.label}
               </NavLink>
-            )}
-
-            <div className="dropdown dropdown-end">
-              <button type="button" tabIndex={0} className="btn btn-ghost gap-2">
-                <div className="avatar placeholder">
-                  <div className="w-9 rounded-full bg-primary text-primary-content">
-                    <span>{getInitials(user?.firstName)}</span>
-                  </div>
-                </div>
-                <span className="hidden sm:inline">{user?.firstName || 'Coder'}</span>
-              </button>
-              <ul
-                tabIndex={0}
-                className="menu dropdown-content z-50 mt-3 w-56 rounded-lg border border-base-300 bg-base-100 p-2 shadow-xl"
-              >
-                {user?.role === 'admin' && (
-                  <li>
-                    <NavLink to="/admin">
-                      <Shield className="h-4 w-4" />
-                      Admin Dashboard
-                    </NavLink>
-                  </li>
-                )}
-                <li>
-                  <button onClick={handleLogout}>
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                <Trophy className="h-4 w-4" />
-                Level up one problem at a time
+            ) : (
+              <div className="cv-chip mb-5">
+                <span className={`h-1.5 w-1.5 rounded-full ${dailyChallenge.state === 'caught-up' ? 'bg-success' : 'bg-base-content/40'}`}></span>
+                {dailyChallenge.label}
               </div>
-              <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-                Welcome back, {user?.firstName || 'coder'}
-              </h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-base-content/70">
-                Find the right challenge, track what you have solved, and jump back into practice without friction.
-              </p>
-            </div>
-
-            <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-[30rem]">
-              <StatCard label="Problems" value={totalProblems} />
-              <StatCard label="Solved" value={solvedCount} />
-              <StatCard label="Progress" value={`${completionRate}%`} />
-            </div>
+            )}
+            <h1 className="max-w-4xl text-5xl font-black leading-tight tracking-tight sm:text-6xl">
+              Welcome back, {user?.firstName || 'Coder'}.
+              <span className="block text-base-content/52">
+                {dailyChallenge.state === 'caught-up' ? "You're caught up today." : "Let's solve something today."}
+              </span>
+            </h1>
           </div>
+
+          <ProgressCard
+            completionRate={completionRate}
+            solvedCount={solvedCount}
+            totalProblems={totalProblems}
+            progressByDifficulty={progressByDifficulty}
+          />
         </section>
 
-        <section className="mt-6 rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <label className="input input-bordered flex flex-1 items-center gap-2">
-              <Search className="h-4 w-4 text-base-content/50" />
+        <section className="cv-panel-soft mb-4 p-3">
+          <div className="grid gap-3 xl:grid-cols-[minmax(18rem,1fr)_10rem_12rem_minmax(12rem,18rem)_auto] xl:items-center">
+            <label className="cv-control flex items-center gap-3 px-4">
+              <Search className="h-4 w-4 text-base-content/45" />
               <input
                 type="search"
-                className="grow"
-                placeholder="Search problems by title"
+                aria-label="Search problems"
+                className="w-full bg-transparent outline-none placeholder:text-base-content/45"
+                placeholder="Search problems by name"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:w-[38rem]">
-              <select
-                className="select select-bordered w-full"
-                value={filters.status}
-                onChange={(event) => setFilters({ ...filters, status: event.target.value })}
-                aria-label="Filter by status"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="select select-bordered w-full"
-                value={filters.difficulty}
-                onChange={(event) => setFilters({ ...filters, difficulty: event.target.value })}
-                aria-label="Filter by difficulty"
-              >
-                {difficultyOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="select select-bordered w-full"
-                value={filters.tag}
-                onChange={(event) => setFilters({ ...filters, tag: event.target.value })}
-                aria-label="Filter by topic"
-              >
-                {tagOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FilterSelect
+              label="Status"
+              value={filters.status}
+              onChange={(value) => updateFilter('status', value)}
+              options={statusOptions}
+            />
+            <FilterSelect
+              label="Difficulty"
+              value={filters.difficulty}
+              onChange={(value) => updateFilter('difficulty', value)}
+              options={difficultyOptions}
+            />
+            <FilterMenu
+              label="Topic"
+              value={filters.tag}
+              onChange={(value) => updateFilter('tag', value)}
+              options={topicFilterOptions}
+            />
+            <button
+              type="button"
+              className="btn h-11 rounded-2xl border-base-300 bg-base-100 px-4"
+              onClick={resetFilters}
+              disabled={!hasActiveFilters}
+            >
+              <X className="h-4 w-4" />
+              Reset
+            </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-base-content/60">
-            <span className="inline-flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              {activeFilters ? `${activeFilters} active filter${activeFilters > 1 ? 's' : ''}` : 'Showing all problems'}
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-base-300/70 pt-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-base-200 px-3 py-1 text-xs font-semibold text-secondary">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Showing {filteredProblems.length}/{totalProblems}
             </span>
-            {activeFilters > 0 && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={resetFilters}>
-                Reset filters
-              </button>
+            {hasActiveFilters ? (
+              activeFilters.map((filter) => (
+                <span key={filter.key} className="rounded-full border border-base-300 bg-base-100 px-3 py-1 text-xs text-base-content/70">
+                  {filter.label}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-base-content/50">No filters applied</span>
             )}
           </div>
         </section>
 
-        <section className="mt-6">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-bold">Problem Set</h2>
-              <p className="text-sm text-base-content/60">
-                {pendingCount} unsolved, {solvedCount} solved
-              </p>
-            </div>
-            <span className="badge badge-outline">
-              {filteredProblems.length} of {totalProblems} showing
-            </span>
+        {isLoading && <ProblemSkeleton />}
+
+        {!isLoading && error && (
+          <div className="alert alert-error rounded-2xl">
+            <span>{error}</span>
           </div>
+        )}
 
-          {isLoading && (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="skeleton h-10 w-10 rounded-lg" />
-                    <div className="flex-1 space-y-3">
-                      <div className="skeleton h-4 w-2/5" />
-                      <div className="skeleton h-3 w-3/5" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        {!isLoading && !error && filteredProblems.length === 0 && (
+          <EmptyState
+            icon={Trophy}
+            title="No problems found"
+            text="Adjust the search or filters. Matching problems will appear here."
+          />
+        )}
 
-          {!isLoading && error && (
-            <div className="alert alert-error rounded-lg">
-              <span>{error}</span>
-            </div>
-          )}
+        {!isLoading && !error && filteredProblems.length > 0 && (
+          <section className="cv-panel overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="cv-table min-w-[760px]">
+                <thead>
+                  <tr>
+                    <th className="w-16">#</th>
+                    <th>Title</th>
+                    <th className="text-right">Topic</th>
+                    <th className="text-right">Status</th>
+                    <th className="text-right">Difficulty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProblems.map((problem, index) => {
+                    const isSolved = solvedProblemIds.has(problem._id);
 
-          {!isLoading && !error && filteredProblems.length === 0 && (
-            <div className="rounded-lg border border-dashed border-base-300 bg-base-100 p-10 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-base-content/40" />
-              <h3 className="mt-4 text-lg font-semibold">No problems found</h3>
-              <p className="mt-2 text-sm text-base-content/60">
-                Try changing the search text or clearing your filters.
-              </p>
-              {activeFilters > 0 && (
-                <button type="button" className="btn btn-primary btn-sm mt-5" onClick={resetFilters}>
-                  Show all problems
-                </button>
-              )}
-            </div>
-          )}
-
-          {!isLoading && !error && filteredProblems.length > 0 && (
-            <div className="space-y-3">
-              {filteredProblems.map((problem) => {
-                const isSolved = solvedProblemIds.has(problem._id);
-
-                return (
-                  <NavLink
-                    key={problem._id}
-                    to={`/problem/${problem._id}`}
-                    className="group block rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                  >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isSolved ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'}`}>
-                          {isSolved ? <CheckCircle2 className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
-                        </span>
-
-                        <div className="min-w-0">
-                          <h3 className="truncate text-lg font-semibold transition group-hover:text-primary">
+                    return (
+                      <tr key={problem._id}>
+                        <td>
+                          {isSolved ? (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/15 text-success">
+                              <Check className="h-4 w-4" />
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-secondary">{index + 1}</span>
+                          )}
+                        </td>
+                        <td>
+                          <NavLink to={`/problem/${problem._id}`} className="font-bold text-base-content transition hover:text-primary">
                             {problem.title}
-                          </h3>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <span className={`badge ${getDifficultyBadgeColor(problem.difficulty)}`}>
-                              {formatDifficulty(problem.difficulty)}
-                            </span>
-                            <span className="badge badge-info badge-outline">
-                              {getTagLabel(problem.tags)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 border-t border-base-300 pt-3 sm:border-0 sm:pt-0">
-                        <span className={`badge ${isSolved ? 'badge-success' : 'badge-ghost'}`}>
-                          {isSolved ? 'Solved' : 'Unsolved'}
-                        </span>
-                        <span className="btn btn-primary btn-outline btn-sm">Open</span>
-                      </div>
-                    </div>
-                  </NavLink>
-                );
-              })}
+                          </NavLink>
+                        </td>
+                        <td className="text-right">
+                          <span className="rounded-full border border-base-300 px-3 py-1 text-xs text-secondary">
+                            {getOptionLabel(topicFilterOptions, problem.tags)}
+                          </span>
+                        </td>
+                        <td className="text-right">
+                          <span className={`inline-flex items-center gap-2 text-sm ${isSolved ? 'text-success' : 'text-base-content/45'}`}>
+                            {isSolved ? <Check className="h-4 w-4" /> : <Circle className="h-3 w-3" />}
+                            {isSolved ? 'Solved' : 'Unsolved'}
+                          </span>
+                        </td>
+                        <td className="text-right">
+                          <span className={`inline-flex items-center justify-end gap-2 font-semibold ${getDifficultyTone(problem.difficulty)}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${getDifficultyDot(problem.difficulty)}`}></span>
+                            {formatLabel(problem.difficulty)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-        </section>
-      </main>
+          </section>
+        )}
+      </PageShell>
     </div>
   );
 }
 
-function StatCard({ label, value }) {
+function FilterSelect({ label, value, onChange, options }) {
   return (
-    <div className="rounded-lg border border-base-300 bg-base-200/60 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-base-content/60">{label}</p>
-      <p className="mt-2 text-2xl font-bold">{value}</p>
+    <label className="min-w-0">
+      <span className="sr-only">{label}</span>
+      <select
+        aria-label={label}
+        className="select cv-control w-full px-4"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const getOptionLabel = (options, value) => {
+  return options.find((option) => option.value === value)?.label || value;
+};
+
+function FilterMenu({ label, value, onChange, options }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = getOptionLabel(options, value);
+
+  return (
+    <div ref={menuRef} className="relative min-w-0">
+      <button
+        type="button"
+        className="cv-control flex w-full items-center justify-between gap-3 px-4 text-left"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-label={label}
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">{selectedLabel}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-base-content/45 transition ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 max-h-72 w-full min-w-64 overflow-y-auto rounded-2xl border border-base-300 bg-base-100 p-2 shadow-2xl">
+          {options.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 ${isSelected ? 'bg-primary/10 text-primary' : 'text-base-content/75'}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {isSelected && <Check className="h-4 w-4" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-const getInitials = (name) => {
-  if (!name) return 'C';
-  return name.trim().charAt(0).toUpperCase() || 'C';
-};
+function ProgressCard({ completionRate, solvedCount, totalProblems, progressByDifficulty }) {
+  return (
+    <div className="cv-panel p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="cv-kicker">Progress</p>
+          <p className="mt-2 text-4xl font-black">{completionRate}%</p>
+        </div>
+        <p className="font-mono text-sm text-secondary">{solvedCount}/{totalProblems}</p>
+      </div>
 
-const getTagLabel = (tag) => {
-  return tagOptions.find((option) => option.value === tag)?.label || tag;
-};
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-base-300">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${completionRate}%` }}></div>
+      </div>
 
-const formatDifficulty = (difficulty = '') => {
-  return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-};
+      <div className="mt-5 grid grid-cols-3 gap-3 border-t border-base-300 pt-4 text-center">
+        {['easy', 'medium', 'hard'].map((difficulty) => (
+          <div key={difficulty}>
+            <p className={`font-mono text-sm font-bold ${getDifficultyTone(difficulty)}`}>
+              {progressByDifficulty[difficulty].solved}/{progressByDifficulty[difficulty].total}
+            </p>
+            <p className="mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-secondary">{difficulty}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-const getDifficultyBadgeColor = (difficulty = '') => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'badge-success';
-    case 'medium':
-      return 'badge-warning';
-    case 'hard':
-      return 'badge-error';
-    default:
-      return 'badge-neutral';
-  }
+function ProblemSkeleton() {
+  return (
+    <section className="cv-panel overflow-hidden p-4">
+      {Array.from({ length: 9 }).map((_, index) => (
+        <div key={index} className="flex items-center gap-5 border-b border-base-300 py-4 last:border-0">
+          <div className="skeleton h-6 w-6 rounded-full"></div>
+          <div className="skeleton h-4 flex-1"></div>
+          <div className="skeleton h-4 w-28"></div>
+          <div className="skeleton h-4 w-20"></div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const getProgressByDifficulty = (problems, solvedProblemIds) => {
+  return ['easy', 'medium', 'hard'].reduce((acc, difficulty) => {
+    const matchingProblems = problems.filter((problem) => problem.difficulty === difficulty);
+    acc[difficulty] = {
+      total: matchingProblems.length,
+      solved: matchingProblems.filter((problem) => solvedProblemIds.has(problem._id)).length,
+    };
+    return acc;
+  }, {});
 };
 
 export default Homepage;

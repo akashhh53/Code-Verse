@@ -27,7 +27,7 @@ const Editorial = ({ secureUrl, thumbnailUrl, duration }) => {
 
   if (!secureUrl) {
     return (
-      <div className="rounded-lg border border-dashed border-base-300 bg-base-100 p-8 text-center">
+      <div className="cv-panel border-dashed p-8 text-center">
         <VideoOff className="mx-auto h-10 w-10 text-base-content/35" />
         <h3 className="mt-4 text-lg font-semibold">No editorial video yet</h3>
         <p className="mt-2 text-sm text-base-content/60">
@@ -50,7 +50,7 @@ const Editorial = ({ secureUrl, thumbnailUrl, duration }) => {
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
+    <div className="cv-panel overflow-hidden">
       <div
         className="relative bg-black"
         onMouseEnter={() => setIsHovering(true)}

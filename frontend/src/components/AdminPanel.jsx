@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { NavLink, useNavigate } from 'react-router';
-import { ArrowLeft, CheckCircle2, Code2, FileCode2, FlaskConical, Info, Plus, Save, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { CheckCircle2, Code2, FileCode2, FlaskConical, Info, Plus, Save, Trash2 } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
+import { BackBar, HeroPanel, PageShell } from './CodeVerseUI';
+import { topicOptions, topicValues } from '../utils/problemMeta';
 
 const languageTemplates = ['C++', 'Java', 'JavaScript'];
 
@@ -12,7 +14,7 @@ const problemSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  tags: z.enum(['array', 'linkedList', 'graph', 'dp']),
+  tags: z.string().refine((value) => topicValues.includes(value), 'Select a valid topic'),
   visibleTestCases: z.array(
     z.object({
       input: z.string().min(1, 'Input is required'),
@@ -96,33 +98,19 @@ function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <NavLink to="/admin" className="btn btn-ghost gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Admin
-          </NavLink>
-          <div className="badge badge-primary badge-outline px-3 py-3">Problem builder</div>
-        </div>
+    <div className="cv-page">
+      <PageShell>
+        <BackBar to="/admin" label="Admin" right={<div className="cv-chip">Problem builder</div>} />
 
-        <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                <FileCode2 className="h-4 w-4" />
-                Create content
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Create New Problem</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
-                Add the full problem package: statement, tags, visible tests, hidden tests, starter code, and reference solutions.
-              </p>
-            </div>
-          </div>
-        </section>
+        <HeroPanel
+          eyebrow="Create content"
+          title="Create New Problem"
+          subtitle="Add the full problem package: statement, tags, visible tests, hidden tests, starter code, and reference solutions."
+          icon={FileCode2}
+        />
 
         {submitState && (
-          <div className={`alert mt-6 rounded-lg ${submitState.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+          <div className={`alert mt-6 rounded-2xl ${submitState.type === 'success' ? 'alert-success' : 'alert-error'}`}>
             {submitState.type === 'success' && <CheckCircle2 className="h-5 w-5" />}
             <span>{submitState.message}</span>
           </div>
@@ -181,11 +169,13 @@ function AdminPanel() {
                   {...register('tags')}
                   className={`select select-bordered w-full ${errors.tags ? 'select-error' : ''}`}
                 >
-                  <option value="array">Array</option>
-                  <option value="linkedList">Linked List</option>
-                  <option value="graph">Graph</option>
-                  <option value="dp">Dynamic Programming</option>
+                  {topicOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+                <ErrorText message={errors.tags?.message} />
               </div>
             </div>
           </FormSection>
@@ -328,8 +318,8 @@ function AdminPanel() {
             </div>
           </FormSection>
 
-          <div className="sticky bottom-4 z-20 rounded-lg border border-base-300 bg-base-100 p-3 shadow-lg">
-            <button type="submit" className="btn btn-primary w-full gap-2" disabled={isSubmitting}>
+          <div className="sticky bottom-4 z-20 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl">
+            <button type="submit" className="btn btn-primary w-full rounded-full gap-2" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
@@ -344,7 +334,7 @@ function AdminPanel() {
             </button>
           </div>
         </form>
-      </main>
+      </PageShell>
     </div>
   );
 }
@@ -353,10 +343,10 @@ function FormSection({ icon, title, description, action, children }) {
   const SectionIcon = icon;
 
   return (
-    <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm">
+    <section className="cv-panel p-5">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <SectionIcon className="h-5 w-5" />
           </span>
           <div>
@@ -373,7 +363,7 @@ function FormSection({ icon, title, description, action, children }) {
 
 function TestCaseBox({ title, onRemove, canRemove, children }) {
   return (
-    <div className="rounded-lg border border-base-300 bg-base-200/50 p-4">
+    <div className="rounded-2xl border border-base-300 bg-base-200/50 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="font-semibold">{title}</h3>
         <button type="button" className="btn btn-error btn-outline btn-xs gap-1" onClick={onRemove} disabled={!canRemove}>

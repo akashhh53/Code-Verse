@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { checkAuth } from "./authSlice";
 import { useEffect } from "react";
 import { Code2 } from "lucide-react";
+import { ThemeToggle } from "./components/CodeVerseUI";
 import AdminPanel from "./components/AdminPanel";
 import ProblemPage from "./pages/ProblemPage"
 import Admin from "./pages/Admin";
@@ -20,18 +21,23 @@ function App(){
 
   // check initial authentication
   useEffect(() => {
+    const savedTheme = localStorage.getItem('codeverse-theme') || 'codeverse';
+    document.documentElement.setAttribute('data-theme', savedTheme);
     dispatch(checkAuth());
   }, [dispatch]);
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-base-200 p-6">
-      <div className="rounded-lg border border-base-300 bg-base-100 p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-content">
+    return <div className="cv-page flex items-center justify-center p-6">
+      <div className="cv-panel p-8 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-content">
           <Code2 className="h-7 w-7" />
         </div>
         <h1 className="mt-4 text-xl font-bold">CodeVerse</h1>
         <p className="mt-1 text-sm text-base-content/60">Preparing your workspace</p>
         <span className="loading loading-spinner loading-md mt-5 text-primary"></span>
+        <div className="mt-5 flex justify-center">
+          <ThemeToggle />
+        </div>
       </div>
     </div>;
   }
@@ -48,6 +54,7 @@ function App(){
       <Route path="/admin/video" element={isAuthenticated && user?.role === 'admin' ? <AdminVideo /> : <Navigate to="/" />} />
       <Route path="/admin/upload/:problemId" element={isAuthenticated && user?.role === 'admin' ? <AdminUpload /> : <Navigate to="/" />} />
       <Route path="/problem/:problemId" element={<ProblemPage/>}></Route>
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/signup"} replace />} />
       
     </Routes>
   </>

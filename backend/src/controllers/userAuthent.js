@@ -3,7 +3,45 @@ const User =  require("../models/user")
 const validate = require('../utils/validator');
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
-const Submission = require("../models/submission")
+const {
+    ACCESS_TOKEN_COOKIE,
+    LEGACY_TOKEN_COOKIE,
+    ACCESS_TOKEN_MAX_AGE_MS,
+    createAccessToken,
+    getTokenFromRequest,
+} = require("../utils/authToken");
+
+const getAuthCookieOptions = (overrides = {}) => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    ...overrides
+});
+
+const getUserReply = (user) => ({
+    firstName: user.firstName,
+    emailId: user.emailId,
+    _id: user._id,
+    role: user.role,
+});
+
+const setAuthCookies = (res, accessToken) => {
+    const options = getAuthCookieOptions({
+        maxAge: ACCESS_TOKEN_MAX_AGE_MS
+    });
+
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, options);
+    res.cookie(LEGACY_TOKEN_COOKIE, accessToken, options);
+};
+
+const clearAuthCookies = (res) => {
+    const options = getAuthCookieOptions({
+        expires: new Date(0)
+    });
+
+    res.cookie(ACCESS_TOKEN_COOKIE, "", options);
+    res.cookie(LEGACY_TOKEN_COOKIE, "", options);
+};
 
 
 const register = async (req,res)=>{
@@ -12,30 +50,21 @@ const register = async (req,res)=>{
         // validate the data;
 
       validate(req.body); 
-      const {firstName, emailId, password}  = req.body;
+      const {emailId, password}  = req.body;
 
       req.body.password = await bcrypt.hash(password, 10);
       req.body.role = 'user'
     //
     
      const user =  await User.create(req.body);
-     const token =  jwt.sign({_id:user._id , emailId:emailId, role:'user'},process.env.JWT_KEY,{expiresIn: 60*60});
-     const reply = {
-        firstName: user.firstName,
-        emailId: user.emailId,
-        _id: user._id,
-        role:user.role,
-    }
+     const accessToken = createAccessToken(user);
+     const reply = getUserReply(user);
     
-    res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 60 * 60 * 1000
-});
+    setAuthCookies(res, accessToken);
      res.status(201).json({
         user:reply,
-        message:"Loggin Successfully"
+        accessToken,
+        message:"Login successful"
     })
     }
     catch(err){
@@ -56,28 +85,22 @@ const login = async (req,res)=>{
 
         const user = await User.findOne({emailId});
 
+        if(!user)
+            throw new Error("Invalid Credentials");
+
         const match = await bcrypt.compare(password,user.password);
 
         if(!match)
             throw new Error("Invalid Credentials");
 
-        const reply = {
-            firstName: user.firstName,
-            emailId: user.emailId,
-            _id: user._id,
-            role:user.role,
-        }
+        const reply = getUserReply(user);
 
-        const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-        res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    maxAge: 60 * 60 * 1000
-});
+        const accessToken = createAccessToken(user);
+        setAuthCookies(res, accessToken);
         res.status(201).json({
             user:reply,
-            message:"Loggin Successfully"
+            accessToken,
+            message:"Login successful"
         })
     }
     catch(err){
@@ -91,22 +114,21 @@ const login = async (req,res)=>{
 const logout = async(req,res)=>{
 
     try{
-        const {token} = req.cookies;
+        const token = req.authToken || getTokenFromRequest(req);
         const payload = jwt.decode(token);
 
 
         await redisClient.set(`token:${token}`,'Blocked');
-        await redisClient.expireAt(`token:${token}`,payload.exp);
-    //    Token add kar dung Redis ke blockList
-    //    Cookies ko clear kar dena.....
+        if(payload?.exp){
+            await redisClient.expireAt(`token:${token}`,payload.exp);
+        }
+        else{
+            await redisClient.expire(`token:${token}`,60 * 60);
+        }
+    // Add the token to the Redis blocklist and clear auth cookies.
 
-    res.cookie("token", "", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    expires: new Date(0)
-});
-    res.send("Logged Out Succesfully");
+    clearAuthCookies(res);
+    res.send("Logged out successfully");
 
     }
     catch(err){
@@ -121,15 +143,18 @@ const adminRegister = async(req,res)=>{
     //   if(req.result.role!='admin')
     //     throw new Error("Invalid Credentials");  
       validate(req.body); 
-      const {firstName, emailId, password}  = req.body;
+      const {password}  = req.body;
 
       req.body.password = await bcrypt.hash(password, 10);
     //
     
      const user =  await User.create(req.body);
-     const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-     res.cookie('token',token,{maxAge: 60*60*1000});
-     res.status(201).send("User Registered Successfully");
+     const accessToken = createAccessToken(user);
+     setAuthCookies(res, accessToken);
+     res.status(201).json({
+        accessToken,
+        message:"User registered successfully"
+     });
     }
     catch(err){
         res.status(400).send("Error: "+err);
@@ -144,11 +169,11 @@ const deleteProfile = async(req,res)=>{
     // userSchema delete
     await User.findByIdAndDelete(userId);
 
-    // Submission se bhi delete karo...
+    // Submissions can also be deleted here if needed.
     
     // await Submission.deleteMany({userId});
     
-    res.status(200).send("Deleted Successfully");
+    res.status(200).send("Deleted successfully");
 
     }
     catch(err){

@@ -1,11 +1,24 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axiosClient from './utils/axiosClient'
 
+const accessTokenStorageKey = 'codeverse-access-token';
+
+const saveAccessToken = (accessToken) => {
+  if (accessToken) {
+    localStorage.setItem(accessTokenStorageKey, accessToken);
+  }
+};
+
+const clearAccessToken = () => {
+  localStorage.removeItem(accessTokenStorageKey);
+};
+
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
     const response =  await axiosClient.post('/user/register', userData);
+    saveAccessToken(response.data.accessToken);
     return response.data.user;
     } catch (error) {
       return rejectWithValue(error);
@@ -19,6 +32,7 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axiosClient.post('/user/login', credentials);
+      saveAccessToken(response.data.accessToken);
       return response.data.user;
     } catch (error) {
       return rejectWithValue(error);
@@ -31,6 +45,7 @@ export const checkAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const { data } = await axiosClient.get('/user/check');
+      saveAccessToken(data.accessToken);
       return data.user;
     } catch (error) {
       if (error.response?.status === 401) {
@@ -46,8 +61,10 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await axiosClient.post('/user/logout');
+      clearAccessToken();
       return null;
     } catch (error) {
+      clearAccessToken();
       return rejectWithValue(error);
     }
   }

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { AlertCircle, ArrowLeft, CheckCircle2, FileVideo, UploadCloud, Video } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
+import { BackBar, HeroPanel, PageShell } from './CodeVerseUI';
 
 function AdminUpload() {
   const { problemId } = useParams();
@@ -77,35 +78,21 @@ function AdminUpload() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <NavLink to="/admin/video" className="btn btn-ghost gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Video Library
-          </NavLink>
-          <div className="badge badge-info badge-outline px-3 py-3">Upload editorial</div>
-        </div>
+    <div className="cv-page">
+      <PageShell className="max-w-5xl">
+        <BackBar to="/admin/video" label="Video Library" right={<div className="cv-chip">Upload editorial</div>} />
 
-        <section className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-info/10 px-3 py-1 text-sm font-medium text-info">
-                <Video className="h-4 w-4" />
-                Problem video
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Upload Solution Video</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
-                Add a clear editorial video so learners can review the idea after attempting the problem.
-              </p>
-            </div>
-          </div>
-        </section>
+        <HeroPanel
+          eyebrow="Problem video"
+          title="Upload Solution Video"
+          subtitle="Add a clear editorial video so learners can review the idea after attempting the problem."
+          icon={Video}
+        />
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_20rem]">
-          <form onSubmit={handleSubmit(onSubmit)} className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm">
+          <form onSubmit={handleSubmit(onSubmit)} className="cv-panel p-5">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <UploadCloud className="h-5 w-5" />
               </span>
               <div>
@@ -114,7 +101,7 @@ function AdminUpload() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-lg border border-dashed border-base-300 bg-base-200/50 p-5">
+            <div className="mt-6 rounded-2xl border border-dashed border-base-300 bg-base-200/50 p-5">
               <input
                 type="file"
                 accept="video/*"
@@ -143,9 +130,9 @@ function AdminUpload() {
             </div>
 
             {selectedFile && (
-              <div className="mt-5 rounded-lg border border-base-300 bg-base-200/50 p-4">
+              <div className="mt-5 rounded-2xl border border-base-300 bg-base-200/50 p-4">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-info/10 text-info">
                     <FileVideo className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
@@ -168,14 +155,14 @@ function AdminUpload() {
             )}
 
             {errors.root && (
-              <div className="alert alert-error mt-5 rounded-lg">
+              <div className="alert alert-error mt-5 rounded-2xl">
                 <AlertCircle className="h-5 w-5" />
                 <span>{errors.root.message}</span>
               </div>
             )}
 
             {uploadedVideo && (
-              <div className="alert alert-success mt-5 rounded-lg">
+              <div className="alert alert-success mt-5 rounded-2xl">
                 <CheckCircle2 className="h-5 w-5" />
                 <div>
                   <h3 className="font-bold">Upload successful</h3>
@@ -187,7 +174,7 @@ function AdminUpload() {
               </div>
             )}
 
-            <button type="submit" disabled={uploading} className="btn btn-primary mt-6 w-full gap-2">
+            <button type="submit" disabled={uploading} className="btn btn-primary mt-6 w-full rounded-full gap-2">
               {uploading ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
@@ -202,7 +189,7 @@ function AdminUpload() {
             </button>
           </form>
 
-          <aside className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm">
+          <aside className="cv-panel p-5">
             <h2 className="text-lg font-bold">Upload Checklist</h2>
             <div className="mt-4 space-y-3">
               <ChecklistItem text="Use a clear title frame or thumbnail." />
@@ -210,13 +197,13 @@ function AdminUpload() {
               <ChecklistItem text="Mention complexity and edge cases near the end." />
               <ChecklistItem text="File size must stay under 100MB." />
             </div>
-            <div className="mt-6 rounded-lg bg-base-200 p-4 text-sm text-base-content/60">
+            <div className="mt-6 rounded-2xl bg-base-200 p-4 text-sm text-base-content/60">
               Problem ID:
               <span className="mt-1 block break-all font-mono text-xs text-base-content">{problemId}</span>
             </div>
           </aside>
         </section>
-      </main>
+      </PageShell>
     </div>
   );
 }

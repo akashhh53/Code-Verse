@@ -1,8 +1,9 @@
 const {getLanguageById,submitBatch,submitToken} = require("../utils/problemUtility");
 const Problem = require("../models/problem");
-const User = require("../models/user");
 const Submission = require("../models/submission");
 const SolutionVideo = require("../models/solutionVideo")
+const Topic = require("../models/topic");
+const { problemTopics } = require("../constants/problemMeta");
 
 const createProblem = async (req, res) => {
   try {
@@ -34,7 +35,7 @@ const createProblem = async (req, res) => {
 
         for (const test of testResult) {
           if (test.status_id != 3) {
-            return res.status(400).send("Error Occured");
+            return res.status(400).send("Error occurred");
           }
         }
       }
@@ -49,10 +50,10 @@ const createProblem = async (req, res) => {
 
     // 🔥 MINIMAL CHANGE: Different response based on single/multiple
     if (createdProblems.length === 1) {
-      res.status(201).send("Problem Saved Successfully");
+      res.status(201).send("Problem saved successfully");
     } else {
       res.status(201).json({
-        message: `${createdProblems.length} Problems Saved Successfully`,
+        message: `${createdProblems.length} problems saved successfully`,
         problems: createdProblems
       });
     }
@@ -79,7 +80,7 @@ const updateProblem = async (req,res)=>{
     const DsaProblem =  await Problem.findById(id);
     if(!DsaProblem)
     {
-      return res.status(404).send("ID is not persent in server");
+      return res.status(404).send("ID is not present on the server");
     }
       
     for(const {language,completeCode} of referenceSolution){
@@ -114,7 +115,7 @@ const updateProblem = async (req,res)=>{
 
      for(const test of testResult){
       if(test.status_id!=3){
-       return res.status(400).send("Error Occured");
+       return res.status(400).send("Error occurred");
       }
      }
 
@@ -144,7 +145,7 @@ const deleteProblem = async(req,res)=>{
     return res.status(404).send("Problem is Missing");
 
 
-   res.status(200).send("Successfully Deleted");
+   res.status(200).send("Deleted successfully");
   }
   catch(err){
      
@@ -163,7 +164,7 @@ const getProblemById = async(req,res)=>{
 
     const getProblem = await Problem.findById(id).select('_id title description difficulty tags visibleTestCases startCode referenceSolution ');
    
-    // video ka jo bhi url wagera le aao
+    // Attach video metadata when a solution video exists.
 
    if(!getProblem)
     return res.status(404).send("Problem is Missing");
@@ -207,6 +208,21 @@ const getAllProblem = async(req,res)=>{
   }
 }
 
+const getProblemTopics = async(req,res)=>{
+
+  try{
+    const topics = await Topic.find({}).sort({ order: 1 }).select("key label -_id");
+    const responseTopics = topics.length
+      ? topics.map((topic) => ({ value: topic.key, label: topic.label }))
+      : problemTopics;
+
+    res.status(200).send(responseTopics);
+  }
+  catch(err){
+    res.status(500).send("Error: "+err);
+  }
+}
+
 
 const solvedAllProblembyUser =  async(req,res)=>{
    
@@ -214,12 +230,16 @@ const solvedAllProblembyUser =  async(req,res)=>{
        
       const userId = req.result._id;
 
-      const user =  await User.findById(userId).populate({
-        path:"problemSolved",
-        select:"_id title difficulty tags"
+      const solvedProblemIds = await Submission.distinct("problemId", {
+        userId,
+        status: "accepted"
       });
+
+      const solvedProblems = await Problem.find({
+        _id: { $in: solvedProblemIds }
+      }).select("_id title difficulty tags");
       
-      res.status(200).send(user.problemSolved);
+      res.status(200).send(solvedProblems);
 
     }
     catch(err){
@@ -232,7 +252,7 @@ const submittedProblem = async (req, res) => {
     const userId = req.result._id;
     const problemId = req.params.pid;
 
-    const ans = await Submission.find({ userId, problemId });
+    const ans = await Submission.find({ userId, problemId }).sort({ createdAt: -1 });
 
     return res.status(200).json(ans);
 
@@ -246,6 +266,4 @@ const submittedProblem = async (req, res) => {
 };
 
 
-module.exports = {createProblem,updateProblem,deleteProblem,getProblemById,getAllProblem,solvedAllProblembyUser,submittedProblem};
-
-
+module.exports = {createProblem,updateProblem,deleteProblem,getProblemById,getAllProblem,getProblemTopics,solvedAllProblembyUser,submittedProblem};

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, Code2, FileSearch, XCircle } from 'lucide-react';
 import axiosClient from '../utils/axiosClient';
 
-const SubmissionHistory = ({ problemId }) => {
+const SubmissionHistory = ({ problemId, refreshKey = 0 }) => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ const SubmissionHistory = ({ problemId }) => {
     };
 
     fetchSubmissions();
-  }, [problemId]);
+  }, [problemId, refreshKey]);
 
   const stats = useMemo(() => {
     const accepted = submissions.filter((submission) => submission.status === 'accepted').length;
@@ -41,7 +41,7 @@ const SubmissionHistory = ({ problemId }) => {
     return (
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="skeleton h-16 w-full rounded-lg" />
+          <div key={index} className="skeleton h-16 w-full rounded-2xl" />
         ))}
       </div>
     );
@@ -49,7 +49,7 @@ const SubmissionHistory = ({ problemId }) => {
 
   if (error) {
     return (
-      <div className="alert alert-error rounded-lg">
+      <div className="alert alert-error rounded-2xl">
         <AlertCircle className="h-5 w-5" />
         <span>{error}</span>
       </div>
@@ -65,7 +65,7 @@ const SubmissionHistory = ({ problemId }) => {
       </div>
 
       {submissions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-base-300 bg-base-100 p-8 text-center">
+        <div className="cv-panel border-dashed p-8 text-center">
           <FileSearch className="mx-auto h-10 w-10 text-base-content/35" />
           <h3 className="mt-4 text-lg font-semibold">No submissions yet</h3>
           <p className="mt-2 text-sm text-base-content/60">
@@ -73,7 +73,7 @@ const SubmissionHistory = ({ problemId }) => {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-base-300 bg-base-100">
+        <div className="cv-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
@@ -122,7 +122,7 @@ const SubmissionHistory = ({ problemId }) => {
 
       {selectedSubmission && (
         <div className="modal modal-open">
-          <div className="modal-box w-11/12 max-w-5xl rounded-lg">
+          <div className="modal-box w-11/12 max-w-5xl rounded-2xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-xl font-bold">Submission Code</h3>
@@ -140,13 +140,13 @@ const SubmissionHistory = ({ problemId }) => {
             </div>
 
             {selectedSubmission.errorMessage && (
-              <div className="alert alert-error mt-4 rounded-lg">
+              <div className="alert alert-error mt-4 rounded-2xl">
                 <AlertCircle className="h-5 w-5" />
                 <span>{selectedSubmission.errorMessage}</span>
               </div>
             )}
 
-            <pre className="mt-4 max-h-[28rem] overflow-auto rounded-lg bg-neutral p-4 text-sm leading-6 text-neutral-content">
+            <pre className="mt-4 max-h-[28rem] overflow-auto rounded-2xl bg-neutral p-4 text-sm leading-6 text-neutral-content">
               <code>{selectedSubmission.code}</code>
             </pre>
 
@@ -169,9 +169,9 @@ function HistoryStat({ label, value, icon, compact }) {
   const StatIcon = icon;
 
   return (
-    <div className="rounded-lg border border-base-300 bg-base-100 p-4">
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
       <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <StatIcon className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -185,7 +185,7 @@ function HistoryStat({ label, value, icon, compact }) {
 
 function ModalMetric({ label, value }) {
   return (
-    <div className="rounded-lg bg-base-200 p-3">
+    <div className="rounded-2xl bg-base-200 p-3">
       <p className="text-xs uppercase tracking-wide text-base-content/50">{label}</p>
       <p className="mt-1 font-semibold">{value}</p>
     </div>
