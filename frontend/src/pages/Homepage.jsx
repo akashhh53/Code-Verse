@@ -173,13 +173,13 @@ function Homepage() {
               />
             </label>
 
-            <FilterSelect
+            <FilterMenu
               label="Status"
               value={filters.status}
               onChange={(value) => updateFilter('status', value)}
               options={statusOptions}
             />
-            <FilterSelect
+            <FilterMenu
               label="Difficulty"
               value={filters.difficulty}
               onChange={(value) => updateFilter('difficulty', value)}
@@ -295,26 +295,6 @@ function Homepage() {
         )}
       </PageShell>
     </div>
-  );
-}
-
-function FilterSelect({ label, value, onChange, options }) {
-  return (
-    <label className="min-w-0">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        className="select cv-control w-full px-4"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
