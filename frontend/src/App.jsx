@@ -5,6 +5,7 @@ import Homepage from "./pages/Homepage";
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAuth } from "./authSlice";
 import { useEffect } from "react";
+import { Code2 } from "lucide-react";
 import AdminPanel from "./components/AdminPanel";
 import ProblemPage from "./pages/ProblemPage"
 import Admin from "./pages/Admin";
@@ -23,8 +24,15 @@ function App(){
   }, [dispatch]);
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <span className="loading loading-spinner loading-lg"></span>
+    return <div className="min-h-screen flex items-center justify-center bg-base-200 p-6">
+      <div className="rounded-lg border border-base-300 bg-base-100 p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-content">
+          <Code2 className="h-7 w-7" />
+        </div>
+        <h1 className="mt-4 text-xl font-bold">CodeVerse</h1>
+        <p className="mt-1 text-sm text-base-content/60">Preparing your workspace</p>
+        <span className="loading loading-spinner loading-md mt-5 text-primary"></span>
+      </div>
     </div>;
   }
 

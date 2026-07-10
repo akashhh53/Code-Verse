@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, NavLink } from 'react-router';
+import { ArrowRight, Code2, Eye, EyeOff, LockKeyhole, Mail, Sparkles, UserRound } from 'lucide-react';
 import { registerUser } from '../authSlice';
 
 const signupSchema = z.object({
@@ -16,7 +17,7 @@ function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isAuthenticated, loading } = useSelector((state) => state.auth); // Removed error as it wasn't used
+  const { isAuthenticated, loading, error } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -35,104 +36,158 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-base-200"> {/* Added a light bg for contrast */}
-      <div className="card w-96 bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title justify-center text-3xl mb-6">Leetcode</h2> {/* Added mb-6 for spacing */}
-          <form onSubmit={handleSubmit(onSubmit)}>
-            {/* First Name Field */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">First Name</span>
-              </label>
-              <input
-                type="text"
-                placeholder="John"
-                className={`input input-bordered w-full ${errors.firstName ? 'input-error' : ''}`} 
-                {...register('firstName')}
-              />
-              {errors.firstName && (
-                <span className="text-error text-sm mt-1">{errors.firstName.message}</span>
-              )}
-            </div>
-
-            {/* Email Field */}
-            <div className="form-control mt-4">
-              <label className="label">
-                <span className="label-text">Email</span>
-              </label>
-              <input
-                type="email"
-                placeholder="john@example.com"
-                className={`input input-bordered w-full ${errors.emailId ? 'input-error' : ''}`} // Ensure w-full for consistency
-                {...register('emailId')}
-              />
-              {errors.emailId && (
-                <span className="text-error text-sm mt-1">{errors.emailId.message}</span>
-              )}
-            </div>
-
-            {/* Password Field with Toggle */}
-            <div className="form-control mt-4">
-              <label className="label">
-                <span className="label-text">Password</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  // Added pr-10 (padding-right) to make space for the button
-                  className={`input input-bordered w-full pr-10 ${errors.password ? 'input-error' : ''}`}
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-500 hover:text-gray-700" // Added transform for better centering, styling
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"} // Accessibility
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
+    <div className="min-h-screen bg-base-200 px-4 py-8">
+      <main className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="flex items-center justify-center p-5 sm:p-8">
+          <div className="w-full max-w-md">
+            <div className="mb-8 flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-content">
+                <Code2 className="h-6 w-6" />
+              </span>
+              <div>
+                <p className="text-xl font-bold">CodeVerse</p>
+                <p className="text-sm text-base-content/60">Start your practice journey</p>
               </div>
-              {errors.password && (
-                <span className="text-error text-sm mt-1">{errors.password.message}</span>
-              )}
             </div>
 
-            {/* Submit Button */}
-            <div className="form-control mt-8 flex justify-center"> 
-              <button
-                type="submit"
-                className={`btn btn-primary ${loading ? 'loading' : ''}`}
-                disabled={loading}
-              >
-                {loading ? 'Signing Up...' : 'Sign Up'}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">Create your account</h2>
+              <p className="mt-2 text-sm text-base-content/60">
+                Set up your profile and begin solving curated coding problems.
+              </p>
+            </div>
+
+            {error && (
+              <div className="alert alert-error mb-5 rounded-lg">
+                <span>{getAuthErrorMessage(error)}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">First name</span>
+                </label>
+                <label className={`input input-bordered flex items-center gap-2 ${errors.firstName ? 'input-error' : ''}`}>
+                  <UserRound className="h-4 w-4 text-base-content/45" />
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    className="grow"
+                    {...register('firstName')}
+                  />
+                </label>
+                {errors.firstName && (
+                  <span className="mt-1 text-sm text-error">{errors.firstName.message}</span>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Email</span>
+                </label>
+                <label className={`input input-bordered flex items-center gap-2 ${errors.emailId ? 'input-error' : ''}`}>
+                  <Mail className="h-4 w-4 text-base-content/45" />
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    className="grow"
+                    {...register('emailId')}
+                  />
+                </label>
+                {errors.emailId && (
+                  <span className="mt-1 text-sm text-error">{errors.emailId.message}</span>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Password</span>
+                </label>
+                <label className={`input input-bordered flex items-center gap-2 ${errors.password ? 'input-error' : ''}`}>
+                  <LockKeyhole className="h-4 w-4 text-base-content/45" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 8 characters"
+                    className="grow"
+                    {...register('password')}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs btn-square"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </label>
+                {errors.password && (
+                  <span className="mt-1 text-sm text-error">{errors.password.message}</span>
+                )}
+              </div>
+
+              <button type="submit" className="btn btn-primary w-full gap-2" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Creating account
+                  </>
+                ) : (
+                  <>
+                    Sign up
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
-            </div>
-          </form>
+            </form>
 
-          {/* Login Redirect */}
-          <div className="text-center mt-6"> {/* Increased mt for spacing */}
-            <span className="text-sm">
+            <p className="mt-6 text-center text-sm text-base-content/70">
               Already have an account?{' '}
-              <NavLink to="/login" className="link link-primary">
+              <NavLink to="/login" className="link link-primary font-medium">
                 Login
               </NavLink>
-            </span>
+            </p>
           </div>
-        </div>
-      </div>
+        </section>
+
+        <section className="hidden bg-base-300/40 p-8 lg:flex lg:flex-col lg:justify-between">
+          <div className="inline-flex w-fit items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+            <Sparkles className="h-4 w-4" />
+            Built for consistent growth
+          </div>
+
+          <div>
+            <h1 className="max-w-md text-4xl font-bold leading-tight">
+              Practice problems, learn patterns, build confidence.
+            </h1>
+            <p className="mt-4 max-w-md text-base leading-7 text-base-content/70">
+              CodeVerse helps you move from topic practice to real problem-solving habits.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <FeatureRow title="Track progress" text="See solved problems and pending practice at a glance." />
+            <FeatureRow title="Learn with editorials" text="Use explanations and videos when a concept needs a second look." />
+            <FeatureRow title="Ask AI" text="Get guidance inside the problem workspace without losing context." />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
+
+function FeatureRow({ title, text }) {
+  return (
+    <div className="rounded-lg border border-base-300 bg-base-100 p-4">
+      <p className="font-semibold">{title}</p>
+      <p className="mt-1 text-sm text-base-content/60">{text}</p>
+    </div>
+  );
+}
+
+const getAuthErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  return error?.response?.data?.message || error?.message || 'Something went wrong. Please try again.';
+};
 
 export default Signup;
